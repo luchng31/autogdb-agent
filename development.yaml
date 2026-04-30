@@ -15,5 +15,10 @@ api:
 session:
   max_age: 1800  # 30分钟
 
-llm:
-  model: "claude-3-sonnet"  # 使用更快的模型进行开发
+llm:                                                                                                                  
+    provider: "anthropic"                                                                                               
+    api_key: "${ANTHROPIC_API_KEY}"  # 从环境变量读取                                                                   
+    base_url: "${ANTHROPIC_BASE_URL}"  # 可选                                                                           
+    model: "claude-3-sonnet"                                                                                            
+    max_tokens: 4096                                                                                                    
+    timeout: 60
