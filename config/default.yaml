@@ -1,0 +1,87 @@
+# AutoGDB Agent 默认配置
+
+agent:
+  model: "claude-3-opus"
+  max_rounds: 100
+  timeout: 3600
+  temperature: 0.1
+
+debug:
+  log_level: "INFO"
+  log_file: "~/.autogdb-agent/logs/agent.log"
+  max_log_size: "100MB"
+  backup_count: 5
+
+plugins:
+  paths:
+    - "~/.autogdb-agent/plugins"
+    - "./plugins"
+  auto_load: true
+
+tools:
+  timeout: 300
+  retry_count: 3
+  cache_enabled: true
+  cache_ttl: 3600
+
+session:
+  max_age: 86400  # 24小时
+  cleanup_interval: 3600  # 1小时
+  max_sessions: 100
+
+api:
+  host: "127.0.0.1"
+  port: 8000
+  workers: 1
+  reload: false
+
+database:
+  url: "sqlite:///~/.autogdb-agent/sessions.db"
+  echo: false
+
+llm:
+  provider: "anthropic"
+  api_key: "${ANTHROPIC_API_KEY}"
+  base_url: "${ANTHROPIC_BASE_URL}"
+  model: "claude-3-opus"
+  max_tokens: 4096
+  timeout: 60
+
+debuggers:
+  gdb:
+    path: "/usr/bin/gdb"
+    prompt_pattern: r"\(gdb\)"
+    init_commands:
+      - "set pagination off"
+      - "set confirm off"
+      - "set print pretty on"
+    timeout: 30
+  lldb:
+    path: "/usr/bin/lldb"
+    prompt_pattern: r"lldb"
+    init_commands:
+      - "settings set stop-disassembly-display source-and-assembly"
+      - "settings set target.run-args"
+    timeout: 30
+
+protocols:
+  bacnet:
+    default_port: 47808
+    protocol: "udp"
+    retries: 3
+    timeout: 5
+  tcp:
+    default_port: 80
+    protocol: "tcp"
+    retries: 3
+    timeout: 10
+
+# 工具配置
+tool_config:
+  debugger:
+    workdir: "/tmp"
+  poc_sender:
+    default_port: 47808
+    default_protocol: "udp"
+    retries: 3
+    timeout: 5

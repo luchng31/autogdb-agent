@@ -1,0 +1,142 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autogdb-agent"
+version = "1.0.0"
+description = "Intelligent GDB debugging agent with plugin architecture"
+authors = [
+    {name = "AutoGDB Agent Team"},
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Debuggers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "anthropic>=0.25.2",
+    "pexpect>=4.8.0",
+    "pyyaml>=6.0",
+    "click>=8.0",
+    "rich>=13.0",
+    "prompt-toolkit>=3.0",
+    "asyncio-mqtt>=0.16.0",
+    "websockets>=11.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "httpx>=0.24.0",
+    "pydantic>=2.0",
+    "sqlalchemy>=2.0",
+    "alembic>=1.12.0",
+    "psutil>=5.9.0",
+    "watchdog>=3.0.0",
+    "python-dotenv>=1.0.0",
+    "jinja2>=3.1.0",
+    "matplotlib>=3.7.0",
+    "plotly>=5.15.0",
+    "networkx>=3.1",
+    "scikit-learn>=1.3.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "flake8>=6.0",
+    "mypy>=1.0",
+    "pre-commit>=3.0",
+    "isort>=5.12",
+    "bandit>=1.7",
+]
+ui = [
+    "streamlit>=1.28.0",
+    "dash>=2.14.0",
+    "reactpy>=0.10.0",
+]
+api = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "sqlalchemy>=2.0",
+    "alembic>=1.12.0",
+]
+
+[project.scripts]
+autogdb-agent = "autogdb_agent.cli:main"
+autogdb = "autogdb_agent.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/your-org/autogdb-agent"
+Documentation = "https://autogdb-agent.readthedocs.io"
+Repository = "https://github.com/your-org/autogdb-agent"
+Issues = "https://github.com/your-org/autogdb-agent/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+autogdb_agent = ["*.yaml", "*.json", "templates/*"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*", "*/test_*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]

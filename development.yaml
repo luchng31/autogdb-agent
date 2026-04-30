@@ -1,0 +1,19 @@
+# 开发环境配置
+
+# 继承默认配置
+<<: *default
+
+# 覆盖开发特定配置
+debug:
+  log_level: "DEBUG"
+
+api:
+  host: "127.0.0.1"
+  port: 8000
+  reload: true
+
+session:
+  max_age: 1800  # 30分钟
+
+llm:
+  model: "claude-3-sonnet"  # 使用更快的模型进行开发
