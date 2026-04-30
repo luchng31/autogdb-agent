@@ -36,7 +36,7 @@
 
 ```bash
 # 克隆项目
-git clone <repository-url>
+git clone https://github.com/luchng31/autogdb-agent.git
 cd autogdb-agent
 
 # 安装依赖
