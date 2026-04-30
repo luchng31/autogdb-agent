@@ -3,6 +3,7 @@ Configuration - 配置管理
 """
 
 import os
+import re
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -80,6 +81,74 @@ class Config:
                 "max_rounds": 100,
                 "timeout": 3600,
                 "temperature": 0.1,
+                "debug_mode": False,
+            },
+            "debuggers": {
+                "gdb": {
+                    "path": "/usr/bin/gdb",
+                    "prompt_pattern": r"\(gdb\)",
+                    "init_commands": [
+                        "set pagination off",
+                        "set confirm off",
+                        "set print pretty on",
+                    ],
+                    "timeout": 30,
+                    "supported_targets": ["elf", "pe", "macho"],
+                },
+                "lldb": {
+                    "path": "/usr/bin/lldb",
+                    "prompt_pattern": r"lldb",
+                    "init_commands": [
+                        "settings set stop-disassembly-display source-and-assembly",
+                        "settings set target.run-args",
+                    ],
+                    "timeout": 30,
+                    "supported_targets": ["elf", "pe", "macho"],
+                },
+            },
+            "protocols": {
+                "bacnet": {
+                    "enabled": True,
+                    "default_port": 47808,
+                    "protocol": "udp",
+                    "retries": 3,
+                    "timeout": 5,
+                    "headers": {},
+                },
+                "tcp": {
+                    "enabled": True,
+                    "default_port": 80,
+                    "protocol": "tcp",
+                    "retries": 3,
+                    "timeout": 10,
+                },
+                "udp": {
+                    "enabled": True,
+                    "default_port": 53,
+                    "protocol": "udp",
+                    "retries": 3,
+                    "timeout": 5,
+                },
+                "http": {
+                    "enabled": True,
+                    "default_port": 80,
+                    "method": "POST",
+                    "timeout": 30,
+                    "retry_policy": "exponential_backoff",
+                },
+            },
+            "analyzers": {
+                "crash_analyzer": {
+                    "enabled": True,
+                    "level": "detailed",
+                    "patterns": {
+                        "null_deref": {"enabled": True, "description": "空指针解引用"},
+                        "buffer_overflow": {"enabled": True, "description": "缓冲区溢出"},
+                        "use_after_free": {"enabled": True, "description": "释放后使用"},
+                        "stack_overflow": {"enabled": True, "description": "栈溢出"},
+                        "heap_corruption": {"enabled": True, "description": "堆损坏"},
+                    },
+                },
             },
             "debug": {
                 "log_level": "INFO",
@@ -101,19 +170,38 @@ class Config:
                 "cache_ttl": 3600,
             },
             "session": {
-                "max_age": 86400,  # 24小时
-                "cleanup_interval": 3600,  # 1小时
+                "max_age": 86400,
+                "cleanup_interval": 3600,
                 "max_sessions": 100,
+                "save_to_disk": True,
+                "log_level": "INFO",
             },
             "api": {
                 "host": "127.0.0.1",
                 "port": 8000,
                 "workers": 1,
                 "reload": False,
+                "cors_origins": ["*"],
             },
             "database": {
                 "url": "sqlite:///~/.autogdb-agent/sessions.db",
                 "echo": False,
+                "pool_size": 10,
+                "max_overflow": 20,
+            },
+            "logging": {
+                "level": "INFO",
+                "format": "text",
+                "file": {
+                    "enabled": True,
+                    "path": "~/.autogdb-agent/logs/agent.log",
+                    "max_size": "100MB",
+                    "backup_count": 5,
+                },
+                "console": {
+                    "enabled": True,
+                    "format": "colored",
+                },
             },
             "llm": {
                 "provider": "anthropic",
@@ -122,41 +210,56 @@ class Config:
                 "model": "claude-3-opus",
                 "max_tokens": 4096,
                 "timeout": 60,
+                "temperature": 0.1,
+                "system_prompt": """你是一个专业的调试分析专家。你的任务是通过分析GDB输出来定位程序崩溃的根因。
+                1. 重点分析函数参数值，特别是空指针、无效地址等异常值
+                2. 查找调用栈中的危险函数调用（如结构体成员访问前未检查指针）
+                3. 确认具体的代码行和漏洞类型
+                4. 当你确认找到根因时，输出以 ROOT_CAUSE_FOUND 开头的结论""",
             },
-            "debuggers": {
-                "gdb": {
-                    "path": "/usr/bin/gdb",
-                    "prompt_pattern": r"\(gdb\)",
-                    "init_commands": [
-                        "set pagination off",
-                        "set confirm off",
-                        "set print pretty on",
-                    ],
-                    "timeout": 30,
-                },
-                "lldb": {
-                    "path": "/usr/bin/lldb",
-                    "prompt_pattern": r"lldb",
-                    "init_commands": [
-                        "settings set stop-disassembly-display source-and-assembly",
-                        "settings set target.run-args",
-                    ],
-                    "timeout": 30,
+            "targets": {
+                "supported": ["elf", "pe", "macho", "core", "runtime"],
+            },
+            "workflows": {
+                "enabled": True,
+                "default_workflow": "standard_debug",
+                "workflows": {
+                    "standard_debug": {
+                        "name": "标准调试",
+                        "description": "基本的调试流程",
+                        "steps": [
+                            {"action": "setup", "plugin": "environment_setup"},
+                            {"action": "analyze", "plugin": "crash_analyzer"},
+                            {"action": "debug", "plugin": "debugger"},
+                        ],
+                    },
+                    "fuzzing": {
+                        "name": "模糊测试",
+                        "description": "自动化模糊测试流程",
+                        "steps": [
+                            {"action": "fuzz", "plugin": "fuzzer"},
+                            {"action": "collect_crashes", "plugin": "crash_collector"},
+                            {"action": "triage", "plugin": "crash_triage"},
+                            {"action": "debug", "plugin": "debugger"},
+                        ],
+                    },
+                    "regression": {
+                        "name": "回归测试",
+                        "description": "自动化回归测试流程",
+                        "steps": [
+                            {"action": "run_tests", "plugin": "test_runner"},
+                            {"action": "collect_results", "plugin": "result_collector"},
+                            {"action": "compare", "plugin": "diff_tool"},
+                        ],
+                    },
                 },
             },
-            "protocols": {
-                "bacnet": {
-                    "default_port": 47808,
-                    "protocol": "udp",
-                    "retries": 3,
-                    "timeout": 5,
-                },
-                "tcp": {
-                    "default_port": 80,
-                    "protocol": "tcp",
-                    "retries": 3,
-                    "timeout": 10,
-                },
+            "visualization": {
+                "enabled": True,
+                "format": "html",
+                "include_charts": True,
+                "include_stack_trace": True,
+                "include_memory_graph": True,
             },
         }
 
@@ -257,13 +360,11 @@ class Config:
         """展开环境变量"""
         if isinstance(value, str):
             # 支持 ${VAR} 和 $VAR 格式
-            import re
-
             def replace_var(match):
                 var = match.group(1) or match.group(2)
                 return os.environ.get(var, match.group(0))
 
-            return re.sub(r'\$\{(\w+)\}|(\$)(\w+)', replace_var, value)
+            return re.sub(r'\$\{(\w+)\}|\$(\w+)', replace_var, value)
         elif isinstance(value, dict):
             return {k: self.expand_env_vars(v) for k, v in value.items()}
         elif isinstance(value, list):

@@ -1,52 +1,14 @@
-# AutoGDB Agent 默认配置
+# AutoGDB Agent - 通用智能调试平台配置
 
+# 代理配置
 agent:
   model: "claude-3-opus"
   max_rounds: 100
   timeout: 3600
   temperature: 0.1
+  debug_mode: false
 
-debug:
-  log_level: "INFO"
-  log_file: "~/.autogdb-agent/logs/agent.log"
-  max_log_size: "100MB"
-  backup_count: 5
-
-plugins:
-  paths:
-    - "~/.autogdb-agent/plugins"
-    - "./plugins"
-  auto_load: true
-
-tools:
-  timeout: 300
-  retry_count: 3
-  cache_enabled: true
-  cache_ttl: 3600
-
-session:
-  max_age: 86400  # 24小时
-  cleanup_interval: 3600  # 1小时
-  max_sessions: 100
-
-api:
-  host: "127.0.0.1"
-  port: 8000
-  workers: 1
-  reload: false
-
-database:
-  url: "sqlite:///~/.autogdb-agent/sessions.db"
-  echo: false
-
-llm:
-  provider: "anthropic"
-  api_key: "${ANTHROPIC_API_KEY}"
-  base_url: "${ANTHROPIC_BASE_URL}"
-  model: "claude-3-opus"
-  max_tokens: 4096
-  timeout: 60
-
+# 调试器配置
 debuggers:
   gdb:
     path: "/usr/bin/gdb"
@@ -56,6 +18,8 @@ debuggers:
       - "set confirm off"
       - "set print pretty on"
     timeout: 30
+    supported_targets: ["elf", "pe", "macho"]
+
   lldb:
     path: "/usr/bin/lldb"
     prompt_pattern: r"lldb"
@@ -63,25 +27,194 @@ debuggers:
       - "settings set stop-disassembly-display source-and-assembly"
       - "settings set target.run-args"
     timeout: 30
+    supported_targets: ["elf", "pe", "macho"]
 
+  gdbserver:
+    enabled: false
+    port: 1234
+    host: "localhost"
+
+# 协议支持
 protocols:
   bacnet:
+    enabled: true
     default_port: 47808
     protocol: "udp"
     retries: 3
     timeout: 5
+    headers: {}
+
   tcp:
+    enabled: true
     default_port: 80
     protocol: "tcp"
     retries: 3
     timeout: 10
+    headers:
+      "User-Agent": "AutoGDB-Agent"
+    body_format: "raw"
 
-# 工具配置
-tool_config:
-  debugger:
-    workdir: "/tmp"
-  poc_sender:
-    default_port: 47808
-    default_protocol: "udp"
+  udp:
+    enabled: true
+    default_port: 53
+    protocol: "udp"
     retries: 3
     timeout: 5
+
+  http:
+    enabled: true
+    default_port: 80
+    method: "POST"
+    timeout: 30
+    retry_policy: "exponential_backoff"
+
+  websocket:
+    enabled: false
+    default_port: 8080
+    protocol: "wss"
+    path: "/ws"
+    reconnect_interval: 5
+
+# 分析器配置
+analyzers:
+  crash_analyzer:
+    enabled: true
+    level: "detailed"  # basic, detailed, deep
+    patterns:
+      null_deref:
+        enabled: true
+        description: "空指针解引用"
+      buffer_overflow:
+        enabled: true
+        description: "缓冲区溢出"
+      use_after_free:
+        enabled: true
+        description: "释放后使用"
+      stack_overflow:
+        enabled: true
+        description: "栈溢出"
+      heap_corruption:
+        enabled: true
+        description: "堆损坏"
+      integer_overflow:
+        enabled: false
+        description: "整数溢出"
+      race_condition:
+        enabled: false
+        description: "竞态条件"
+
+# 工具配置
+tools:
+  timeout: 300
+  retry_count: 3
+  cache_enabled: true
+  cache_ttl: 3600
+
+# 会话配置
+session:
+  max_age: 86400  # 24小时
+  cleanup_interval: 3600  # 1小时
+  max_sessions: 100
+  save_to_disk: true
+  log_level: "INFO"
+
+# API服务配置
+api:
+  host: "127.0.0.1"
+  port: 8000
+  workers: 1
+  reload: false
+  cors_origins: ["*"]
+
+# 数据库配置
+database:
+  url: "sqlite:///~/.autogdb-agent/sessions.db"
+  echo: false
+  pool_size: 10
+  max_overflow: 20
+
+# 日志配置
+logging:
+  level: "INFO"
+  format: "text"
+  file:
+    enabled: true
+    path: "~/.autogdb-agent/logs/agent.log"
+    max_size: "100MB"
+    backup_count: 5
+  console:
+    enabled: true
+    format: "colored"
+
+# LLM配置
+llm:
+  provider: "anthropic"  # anthropic, openai, custom
+  api_key: "${ANTHROPIC_API_KEY}"
+  base_url: "${ANTHROPIC_BASE_URL}"
+  model: "claude-3-opus"
+  max_tokens: 4096
+  timeout: 60
+  temperature: 0.1
+  system_prompt: |
+    你是一个专业的调试分析专家。你的任务是通过分析GDB输出来定位程序崩溃的根因。
+    1. 重点分析函数参数值，特别是空指针、无效地址等异常值
+    2. 查找调用栈中的危险函数调用（如结构体成员访问前未检查指针）
+    3. 确认具体的代码行和漏洞类型
+    4. 当你确认找到根因时，输出以 ROOT_CAUSE_FOUND 开头的结论
+
+# 支持的目标类型
+targets:
+  supported:
+    - "elf"
+    - "pe"
+    - "macho"
+    - "core"
+    - "runtime"
+
+# 工作流配置
+workflows:
+  enabled: true
+  default_workflow: "standard_debug"
+  workflows:
+    standard_debug:
+      name: "标准调试"
+      description: "基本的调试流程"
+      steps:
+        - action: "setup"
+          plugin: "environment_setup"
+        - action: "analyze"
+          plugin: "crash_analyzer"
+        - action: "debug"
+          plugin: "debugger"
+
+    fuzzing:
+      name: "模糊测试"
+      description: "自动化模糊测试流程"
+      steps:
+        - action: "fuzz"
+          plugin: "fuzzer"
+        - action: "collect_crashes"
+          plugin: "crash_collector"
+        - action: "triage"
+          plugin: "crash_triage"
+        - action: "debug"
+          plugin: "debugger"
+
+    regression:
+      name: "回归测试"
+      description: "自动化回归测试流程"
+      steps:
+        - action: "run_tests"
+          plugin: "test_runner"
+        - action: "collect_results"
+          plugin: "result_collector"
+        - action: "compare"
+          plugin: "diff_tool"
+
+# 可视化配置
+visualization:
+  enabled: true
+  format: "html"  # html, json, json_lines
+  include_charts: true
+  include_stack_trace: true
+  include_memory_graph: true

@@ -1,0 +1,259 @@
+# AutoGDB Agent - 通用智能调试平台配置示例
+
+# 应用配置
+app:
+  name: "AutoGDB Agent"
+  version: "2.0.0"
+  debug_mode: false
+
+# 调试器配置 - 支持多种调试器
+debuggers:
+  gdb:
+    enabled: true
+    path: "/usr/bin/gdb"
+    prompt_pattern: r"\(gdb\)"
+    init_commands:
+      - "set pagination off"
+      - "set confirm off"
+      - "set print pretty on"
+    timeout: 30
+    supported_targets: ["elf", "pe", "macho", "core"]
+
+  lldb:
+    enabled: true
+    path: "/usr/bin/lldb"
+    prompt_pattern: r"lldb"
+    init_commands:
+      - "settings set stop-disassembly-display source-and-assembly"
+      - "settings set target.run-args"
+    timeout: 30
+    supported_targets: ["elf", "pe", "macho"]
+
+  custom_debugger:
+    enabled: true
+    path: "/path/to/custom/debugger"
+    prompt_pattern: r">>>"
+    timeout: 30
+
+# 协议配置 - 支持多种网络协议
+protocols:
+  # TCP协议
+  tcp:
+    enabled: true
+    default_port: 80
+    timeout: 10
+    retry_policy:
+      max_attempts: 3
+      delay: 1
+
+  # UDP协议
+  udp:
+    enabled: true
+    default_port: 53
+    timeout: 5
+    retry_policy:
+      max_attempts: 3
+      delay: 0.1
+
+  # HTTP协议
+  http:
+    enabled: true
+    default_port: 80
+    method: "POST"
+    timeout: 30
+    retry_policy:
+      max_attempts: 3
+      delay: 1
+      backoff: "exponential"
+
+  # WebSocket协议
+  websocket:
+    enabled: false
+    default_port: 8080
+    path: "/ws"
+    reconnect_interval: 5
+
+  # BACnet协议（保留支持）
+  bacnet:
+    enabled: true
+    default_port: 47808
+    protocol: "udp"
+    timeout: 5
+    headers: {}
+
+# 目标配置 - 支持多种目标类型
+targets:
+  - "elf"       # ELF可执行文件（Linux/Unix）
+  - "pe"        # PE可执行文件（Windows）
+  - "macho"     # Mach-O文件（macOS）
+  - "core"      # Core dump文件
+  - "runtime"   # 运行时程序
+
+# 分析器配置
+analyzers:
+  # 崩溃分析器
+  crash_analyzer:
+    enabled: true
+    level: "detailed"  # basic, detailed, deep
+    patterns:
+      null_deref:
+        enabled: true
+        description: "空指针解引用"
+      buffer_overflow:
+        enabled: true
+        description: "缓冲区溢出"
+      use_after_free:
+        enabled: true
+        description: "释放后使用"
+      stack_overflow:
+        enabled: true
+        description: "栈溢出"
+      heap_corruption:
+        enabled: true
+        description: "堆损坏"
+      integer_overflow:
+        enabled: false
+        description: "整数溢出"
+
+  # 内存分析器
+  memory_analyzer:
+    enabled: true
+    check_heap: true
+    check_stack: true
+    check_canaries: true
+
+  # 二进制分析器
+  binary_analyzer:
+    enabled: true
+    detect_strings: true
+    detect_imports: true
+    detect_symbols: true
+
+# 工具配置
+tools:
+  # 调试工具
+  debugger:
+    timeout: 300
+    retry_count: 3
+    auto_save: true
+
+  # 协议工具
+  protocol_sender:
+    timeout: 10
+    retry_count: 3
+
+  # POC发送工具
+  poc_sender:
+    timeout: 30
+    retry_count: 3
+    batch_size: 1
+
+  # 分析工具
+  analyzer:
+    timeout: 60
+    cache_enabled: true
+    cache_ttl: 3600
+
+# 工作流配置
+workflows:
+  enabled: true
+  default_workflow: "auto_debug"  # 标准调试、模糊测试、回归测试
+
+  # 自动调试工作流
+  auto_debug:
+    name: "自动调试"
+    description: "自动化调试流程"
+    steps:
+      - action: "analyze"
+        plugin: "crash_analyzer"
+      - action: "debug"
+        plugin: "debugger"
+
+  # 模糊测试工作流
+  fuzzing:
+    name: "模糊测试"
+    description: "自动化模糊测试"
+    steps:
+      - action: "fuzz"
+        plugin: "poc_sender"
+      - action: "collect_crashes"
+        plugin: "crash_collector"
+      - action: "triage"
+        plugin: "crash_triage"
+      - action: "debug"
+        plugin: "debugger"
+
+  # 回归测试工作流
+  regression:
+    name: "回归测试"
+    description: "自动化回归测试"
+    steps:
+      - action: "run_tests"
+        plugin: "test_runner"
+      - action: "collect_results"
+        plugin: "result_collector"
+      - action: "compare"
+        plugin: "diff_tool"
+
+# LLM配置
+llm:
+  provider: "anthropic"  # anthropic, openai, custom
+  api_key: "${ANTHROPIC_API_KEY}"  # 支持环境变量
+  base_url: "${ANTHROPIC_BASE_URL}"
+  model: "claude-3-opus"
+  max_tokens: 4096
+  timeout: 60
+  temperature: 0.1
+  system_prompt: |
+    你是一个专业的调试分析专家。你的任务是通过分析GDB输出来定位程序崩溃的根因。
+    1. 重点分析函数参数值，特别是空指针、无效地址等异常值
+    2. 查找调用栈中的危险函数调用（如结构体成员访问前未检查指针）
+    3. 确认具体的代码行和漏洞类型
+    4. 当你确认找到根因时，输出以 ROOT_CAUSE_FOUND 开头的结论
+
+# 可视化配置
+visualization:
+  enabled: true
+  format: "html"  # html, json, json_lines
+  include_charts: true
+  include_stack_trace: true
+  include_memory_graph: true
+  include_flow_diagram: true
+
+# 日志配置
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "text"  # text, json
+  file:
+    enabled: true
+    path: "~/.autogdb-agent/logs/agent.log"
+    max_size: "100MB"
+    backup_count: 5
+  console:
+    enabled: true
+    format: "colored"
+
+# 会话配置
+session:
+  max_age: 86400  # 24小时
+  cleanup_interval: 3600  # 1小时
+  max_sessions: 100
+  save_to_disk: true
+  save_format: "json"  # json, yaml
+
+# 数据库配置
+database:
+  url: "sqlite:///~/.autogdb-agent/sessions.db"
+  echo: false
+  pool_size: 10
+  max_overflow: 20
+
+# API服务配置
+api:
+  host: "127.0.0.1"
+  port: 8000
+  workers: 1
+  reload: false
+  cors_origins: ["*"]
+  enable_docs: true
+  docs_path: "/docs"

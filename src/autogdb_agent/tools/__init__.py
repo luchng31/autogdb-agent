@@ -8,6 +8,7 @@ from .poc_sender import POCSenderTool
 from .memory_inspector import MemoryInspectorTool
 from .stack_trace import StackTraceTool
 from .disassembler import DisassemblerTool
+from .protocol_sender import ProtocolSenderTool
 
 __all__ = [
     "DebuggerTool",
@@ -16,4 +17,5 @@ __all__ = [
     "MemoryInspectorTool",
     "StackTraceTool",
     "DisassemblerTool",
+    "ProtocolSenderTool",
 ]
