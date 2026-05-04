@@ -323,5 +323,10 @@ def create_message(role, content):
     return Message(MessageRole(role), content)
 
 
-if __name__ == "__main__":
+def main():
+    """CLI entry point"""
     cli()
+
+
+if __name__ == "__main__":
+    main()

@@ -5,12 +5,12 @@ Configuration - 配置管理
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 import yaml
 
 from .exceptions import AutoGDBError
-from ..utils.logger import get_logger
+from ..utils import logger as logger_module
 
 
 class Config:
@@ -20,7 +20,7 @@ class Config:
     """
 
     def __init__(self, config_path: Optional[Path] = None):
-        self.logger = get_logger(__name__)
+        self.logger = logger_module.get_logger(__name__)
 
         # 配置文件路径
         self.config_path = config_path or self._get_default_config_path()

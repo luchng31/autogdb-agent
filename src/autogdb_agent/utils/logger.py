@@ -6,12 +6,9 @@ import logging
 import logging.handlers
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
-from ..core.config import Config
-
-
-def get_logger(name: str, config: Optional[Config] = None) -> logging.Logger:
+def get_logger(name: str, config: Optional[Any] = None) -> logging.Logger:
     """
     获取日志记录器
 
@@ -30,6 +27,11 @@ def get_logger(name: str, config: Optional[Config] = None) -> logging.Logger:
 
     # 从配置获取日志设置
     if config:
+        # Lazy import to avoid circular dependency
+        from ..core.config import Config
+        if not isinstance(config, Config):
+            config = Config(config)
+
         log_level = config.get("debug.log_level", "INFO")
         log_file = config.get("debug.log_file")
         max_size = config.get("debug.max_log_size", "100MB")
